@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IMEX WorldFriendly - Drag & Drop Upload</title>
+<style>
+/* Reset & font */
+body { margin:0; padding:0; font-family: Arial,sans-serif; background:#f0f2f5; }
+header { display:flex; justify-content:center; align-items:center; flex-direction:column; background:#004080; color:white; padding:20px; position:relative; }
+header h1 { font-size: 48px; margin:0; text-align:center; }
+#contactTop { position:absolute; top:10px; right:20px; font-size:14px; text-align:right; }
+nav { margin-top:20px; display:flex; justify-content:center; gap:15px; flex-wrap:wrap; }
+nav button { background:#0074D9; border:none; color:white; padding:10px 15px; cursor:pointer; border-radius:8px; font-size:14px; transition:0.3s; display:flex; flex-direction:column; align-items:center; }
+nav button img { width:40px; height:40px; margin-bottom:5px; }
+nav button:hover { transform: scale(1.1); background:#005bb5; }
+
+/* Sections */
+section { display:none; padding:20px; max-width:1000px; margin:0 auto; background:white; border-radius:8px; margin-top:20px; box-shadow:0 0 10px rgba(0,0,0,0.1); }
+section.active { display:block; }
+
+/* Galleries & drop zones */
+.gallery, .marketplace, .contracts { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-bottom:10px; }
+.dropzone { border:2px dashed #0074D9; border-radius:8px; padding:20px; text-align:center; color:#0074D9; cursor:pointer; margin-bottom:10px; }
+.dropzone.dragover { background:#e0f0ff; }
+.gallery img, .marketplace img { width:100px; height:100px; object-fit:cover; border-radius:8px; transition:0.3s; }
+.gallery img:hover, .marketplace img:hover { transform: scale(1.1); }
+
+/* Contracts icon */
+.file-icon { width:80px; height:80px; background:#eee; display:inline-flex; align-items:center; justify-content:center; margin:5px; cursor:pointer; position:relative; border-radius:8px; font-weight:bold; }
+
+/* Delete button */
+.file-icon span.del { position:absolute; top:0; right:0; background:red; color:white; padding:2px 5px; cursor:pointer; border-radius:0 8px 0 8px; }
+
+/* Lightbox */
+.lightbox { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); align-items:center; justify-content:center; z-index:1000; animation:fadeIn 0.3s; }
+.lightbox img { max-width:90%; max-height:90%; border-radius:8px; }
+.lightbox span { position:absolute; top:10px; right:20px; font-size:30px; color:white; cursor:pointer; }
+
+/* Chat */
+#chatBox { position:fixed; bottom:10px; right:10px; width:300px; background:white; border:1px solid #ccc; padding:10px; z-index:1001; border-radius:8px; box-shadow:0 0 10px rgba(0,0,0,0.2);}
+#chatBox textarea { width:100%; height:50px; border-radius:4px; }
+#chatBox button { width:100%; margin-top:5px; border:none; background:#0074D9; color:white; padding:8px; border-radius:4px; cursor:pointer; }
+
+/* Contact final */
+#contactEnd { padding:20px; background:#004080; color:white; text-align:center; margin-top:20px; border-radius:8px; }
+
+/* Admin Notice */
+#adminNotice { position:fixed; top:0; left:10px; width:250px; min-height:100px; background:#ffcc00; color:#000; font-size:20px; font-weight:bold; padding:15px; border-radius:0 0 10px 10px; box-shadow:0 0 15px rgba(0,0,0,0.3); z-index:999; cursor:pointer; }
+
+/* ATTENTION Button */
+#attentionButton { position:fixed; top:35%; right:10px; transform:translateY(-50%); background:#ff3333; color:white; font-weight:bold; padding:15px 20px; border-radius:10px; cursor:pointer; z-index:1002; text-align:center; }
+
+/* Animations */
+@keyframes fadeIn { from {opacity:0} to {opacity:1} }
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    header h1 { font-size: 32px; }
+    nav { flex-direction: column; gap:10px; }
+    nav button { font-size:12px; padding:8px 10px; }
+    nav button img { width:30px; height:30px; margin-bottom:3px; }
+    section { padding:10px; margin-top:15px; }
+    .gallery img, .marketplace img { width:80px; height:80px; }
+    .file-icon { width:60px; height:60px; }
+    #chatBox { width:90%; right:5%; bottom:5px; }
+    #attentionButton { right:5%; padding:10px 15px; font-size:14px; }
+    #adminNotice { width:90%; left:5%; font-size:16px; }
+}
+@media (max-width: 480px) {
+    header h1 { font-size:24px; }
+    nav button { font-size:10px; padding:6px 8px; }
+    nav button img { width:25px; height:25px; }
+    .gallery img, .marketplace img { width:60px; height:60px; }
+    .file-icon { width:50px; height:50px; }
+    #chatBox { width:95%; right:2.5%; bottom:5px; }
+    #attentionButton { font-size:12px; padding:8px 12px; }
+    #adminNotice { font-size:14px; padding:10px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+    <div id="contactTop"><small>Email: contact@imexworldfriendly.com</small></div>
+    <h1>IMEX WorldFriendly</h1>
+    <nav>
+        <button onclick="showSection('admin')"><img src="https://img.icons8.com/ios-filled/50/ffffff/lock--v1.png"/><span>Admin</span></button>
+        <button onclick="showSection('about')"><img src="https://img.icons8.com/ios-filled/50/ffffff/info.png"/><span>About</span></button>
+        <button onclick="showSection('offers')"><img src="https://img.icons8.com/ios-filled/50/ffffff/image.png"/><span>Offers</span></button>
+        <button onclick="showSection('marketplace')"><img src="https://img.icons8.com/ios-filled/50/ffffff/shop.png"/><span>Marketplace</span></button>
+        <button onclick="showSection('contracts')"><img src="https://img.icons8.com/ios-filled/50/ffffff/document.png"/><span>Contracts</span></button>
+        <button onclick="showSection('payment')"><img src="https://img.icons8.com/ios-filled/50/ffffff/bank-card-back-side.png"/><span>Payment</span></button>
+        <button onclick="showSection('contact')"><img src="https://img.icons8.com/ios-filled/50/ffffff/contacts.png"/><span>Contact</span></button>
+    </nav>
+</header>
+
+<div id="adminNotice"><span id="noticeText">Important Announcement...</span></div>
+<div id="attentionButton">ATTENTION!</div>
+
+<section id="admin">
+<h2>Admin Login</h2>
+<input type="password" id="adminPass" placeholder="Password">
+<button onclick="checkPassword()">Login</button>
+<p id="adminMessage"></p>
+</section>
+
+<section id="about">
+<h2>About Us</h2>
+<p>IMEX WorldFriendly – International Multifunctional Ecosystem Brokers. We specialize in commercial brokerage, petroleum products, tourism, hotels, restaurants, food products, and international relations management.</p>
+</section>
+
+<section id="offers">
+<h2>Offers</h2>
+<div class="dropzone" id="offersDrop">Drag & Drop files here or click to select</div>
+<div class="gallery"></div>
+</section>
+
+<section id="marketplace">
+<h2>Marketplace</h2>
+<div class="dropzone" id="marketDrop">Drag & Drop files here or click to select</div>
+<div class="marketplace"></div>
+</section>
+
+<section id="contracts">
+<h2>Contracts</h2>
+<div class="dropzone" id="contractsDrop">Drag & Drop files here or click to select</div>
+<div class="contracts"></div>
+</section>
+
+<section id="payment">
+<h2>Payment</h2>
+<p>Bank Transfer:</p>
+<p>IBAN: RO00BANK00000000000000<br>Bank: Example Bank<br>Beneficiary: IMEX WorldFriendly LTD</p>
+</section>
+
+<section id="contact">
+<h2>Contact</h2>
+<form id="contactForm">
+<input type="text" name="from_name" placeholder="Name" required><br>
+<input type="email" name="from_email" placeholder="Email" required><br>
+<textarea name="message" placeholder="Message" required></textarea><br>
+<button type="submit">Send</button>
+</form>
+<p>Company Details:</p>
+IMEX WorldFriendly LTD<br>
+Street Mircea cel Batran no.3, Building H1, Apartment 1, Ground Floor<br>
+VAT ID: [to be assigned]<br>
+Phone: +40 123 456 789<br>
+Email: contact@imexworldfriendly.com
+</section>
+
+<section id="attention">
+<h4>Attention!</h4>
+<div id="attentionContent" style="font-weight:bold; font-size:15px;">This is an important announcement.</div>
+</section>
+
+<div id="contactEnd">
+<p>IMEX WorldFriendly LTD<br>
+Street Mircea cel Batran no.3, Building H1, Apartment 1, Ground Floor<br>
+VAT ID: [to be assigned]<br>
+Phone: +40 123 456 789<br>
+Email: contact@imexworldfriendly.com</p>
+</div>
+
+<div class="lightbox" id="lightbox">
+<span onclick="closeLightbox()">×</span>
+<img src="">
+</div>
+
+<div id="chatBox">
+<h4>Chat</h4>
+<textarea id="chatMessage" placeholder="Type a message..."></textarea>
+<button onclick="sendChat()">Send</button>
+<div id="chatLog"></div>
+</div>
+
+<script>
+let adminActive=false;
+
+function checkPassword(){
+    const pass=document.getElementById('adminPass').value;
+    const msg=document.getElementById('adminMessage');
+    if(pass==='4Martie1980'){
+        msg.textContent='Access granted';
+        adminActive=true;
+        alert('Admin mode enabled: You can now upload files via drag & drop.');
+        loadFiles();
+    } else { msg.textContent='Incorrect password'; adminActive=false; }
+}
+
+function showSection(id){
+    document.querySelectorAll('section').forEach(sec=>sec.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+}
+
+function openLightbox(src){document.getElementById('lightbox').style.display='flex'; document.getElementById('lightbox').querySelector('img').src=src;}
+function closeLightbox(){document.getElementById('lightbox').style.display='none';}
+
+function saveToStorage(key, arr){localStorage.setItem(key, JSON.stringify(arr));}
+function loadFromStorage(key){return JSON.parse(localStorage.getItem(key)||'[]');}
+
+const gallery=document.querySelector('.gallery');
+const marketplaceDiv=document.querySelector('.marketplace');
+const contractsDiv=document.querySelector('.contracts');
+
+function handleFiles(files, key, container){
+    if(!adminActive) return;
+    let saved = loadFromStorage(key);
+    Array.from(files).forEach(file=>{
+        const reader=new FileReader();
+        reader.onload=function(ev){
+            if(key==='contracts'){
+                saved.push({name:file.name, data:ev.target.result});
+                addFileIcon(container, file.name, ev.target.result, true, key);
+            } else {
+                saved.push(ev.target.result);
+                addImage(container, ev.target.result, true, key);
+            }
+            saveToStorage(key, saved);
+        }
+        reader.readAsDataURL(file);
+    });
+}
+
+function addImage(container, src, admin, key){
+    const div = document.createElement('div');
+    const img = document.createElement('img'); img.src = src; img.onclick = ()=>openLightbox(src);
+    div.appendChild(img);
+    if(admin){
+        const del = document.createElement('span'); del.textContent='X';
+        del.style.position='absolute'; del.style.top='2px'; del.style.right='2px';
+        del.style.background='red'; del.style.color='white'; del.style.cursor='pointer'; del.style.padding='2px 5px';
+        del.onclick = ()=>{ div.remove(); let arr = loadFromStorage(key); arr = arr.filter(x=>x!==src); saveToStorage(key, arr);}
+        div.appendChild(del);
+    }
+    container.appendChild(div);
+}
+
+function addFileIcon(container, name, data, admin, key){
+    const div = document.createElement('div'); div.classList.add('file-icon');
+    const icon = document.createElement('span'); icon.textContent = name.split('.').pop().toUpperCase();
+    div.appendChild(icon);
+    const a = document.createElement('a'); a.href=data; a.download=name;
+    a.style.position='absolute'; a.style.top='0'; a.style.left='0'; a.style.width='100%'; a.style.height='100%';
+    a.style.textDecoration='none'; a.style.color='black';
+    div.appendChild(a);
+    if(admin){
+        const del = document.createElement('span'); del.classList.add('del'); del.textContent='X';
+        del.onclick = ()=>{ div.remove(); let arr = loadFromStorage(key); arr = arr.filter(f=>f.data!==data); saveToStorage(key, arr);}
+        div.appendChild(del);
+    }
+    container.appendChild(div);
+}
+
+function loadFiles(){
+    loadFromStorage('offers').forEach(src=>addImage(gallery, src, adminActive, 'offers'));
+    loadFromStorage('market').forEach(src=>addImage(marketplaceDiv, src, adminActive, 'market'));
+    loadFromStorage('contracts').forEach(f=>addFileIcon(contractsDiv, f.name, f.data, adminActive, 'contracts'));
+}
+
+// Drag & Drop handling
+['offers','market','contracts'].forEach(key=>{
+    const dz = document.getElementById(key+'Drop');
+    dz.addEventListener('dragover', e=>{ e.preventDefault(); dz.classList.add('dragover'); });
+    dz.addEventListener('dragleave', e=>{ dz.classList.remove('dragover'); });
+    dz.addEventListener('drop', e=>{ e.preventDefault(); dz.classList.remove('dragover'); handleFiles(e.dataTransfer.files, key, key==='offers'?gallery:(key==='market'?marketplaceDiv:contractsDiv)); });
+    dz.addEventListener('click', ()=>{
+        if(!adminActive) return;
+        const input = document.createElement('input'); input.type='file'; if(key!=='contracts') input.multiple=true;
+        input.onchange = ()=>handleFiles(input.files, key, key==='offers'?gallery:(key==='market'?marketplaceDiv:contractsDiv));
+        input.click();
+    });
+});
+
+document.getElementById('contactForm').addEventListener('submit', function(event){ event.preventDefault(); alert('Contact send simulation!'); });
+
+function sendChat(){ const msg=document.getElementById('chatMessage').value; if(msg.trim()==='') return; document.getElementById('chatLog').innerHTML+='<p>'+msg+'</p>'; document.getElementById('chatMessage').value=''; }
+
+const adminNotice = document.getElementById('adminNotice'); const noticeText = document.getElementById('noticeText');
+window.addEventListener('load', ()=>{ const savedNotice = localStorage.getItem('adminNotice'); if(savedNotice){ noticeText.textContent = savedNotice; } });
+adminNotice.addEventListener('click', ()=>{ if(!adminActive) return; const newNotice = prompt('Enter new announcement:', noticeText.textContent); if(newNotice !== null){ noticeText.textContent = newNotice; localStorage.setItem('adminNotice', newNotice); } });
+
+const attentionContent = document.getElementById('attentionContent'); const savedAttention = localStorage.getItem('attentionContent'); if(savedAttention) attentionContent.textContent = savedAttention;
+attentionContent.addEventListener('click', ()=>{ if(!adminActive) return; const newText = prompt('Enter new ATTENTION announcement:', attentionContent.textContent); if(newText !== null){ attentionContent.textContent = newText; localStorage.setItem('attentionContent', newText); } });
+
+document.getElementById('attentionButton').addEventListener('click', () => { showSection('attention'); });
+window.onload = ()=>{ loadFiles(); }
+
+</script>
+</body>
+</html>
